@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <metadata>
-  <groupId>com.novetta.ibg</groupId>
+  <groupId>com.github.mike10004</groupId>
   <artifactId>aws-maven</artifactId>
   <versioning>
     <versions>
       <version>5.0.2-SNAPSHOT</version>
     </versions>
-    <lastUpdated>20140214185049</lastUpdated>
+    <lastUpdated>20140214191241</lastUpdated>
   </versioning>
 </metadata>
