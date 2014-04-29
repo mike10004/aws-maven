@@ -1,20 +1,40 @@
 # AWS Maven Wagon
 This project is a [Maven Wagon][wagon] for [Amazon S3][s3].  In order to to publish artifacts to an S3 bucket, the user (as identified by their access key) must be listed as an owner on the bucket.
 
+## Why this fork?
+This fork's enhancement is the ability to customize the AWS credentials provider chain that is used to 
+resolve credentials for the S3 bucket that hosts the Maven artifacts you deploy. The upstream version
+uses a default provider chain that includes an `InstanceProfileCredentialsProvider` that, in my 
+opinion, just takes too darn long to realize it's not going to be able to resolve any credentials and
+should give up.
+
 ## Usage
-To publish Maven artifacts to S3 a build extension must be defined in a project's `pom.xml`.  The latest version of the wagon can be found on the [`aws-maven`][aws-maven] page in Maven Central.
+To publish Maven artifacts to S3 a build extension must be defined in a project's `pom.xml`.  The latest version of the wagon can be found in the `mvn-repo` branch of this repository.
 
 ```xml
 <project>
+  ...
+  <repositories>
+    ...
+    <repository>
+      <id>mike10004-aws-maven-mvn-repo</id>
+      <url>https://raw.github.com/mike10004/aws-maven/mvn-repo/</url>
+      <snapshots>
+        <enabled>true</enabled>
+        <updatePolicy>always</updatePolicy>
+      </snapshots>
+    </repository>
+    ...
+  </repositories>
   ...
   <build>
     ...
     <extensions>
       ...
       <extension>
-        <groupId>org.springframework.build</groupId>
+        <groupId>com.github.mike10004</groupId>
         <artifactId>aws-maven</artifactId>
-        <version>5.0.0.RELEASE</version>
+        <version>5.1.1</version>
       </extension>
       ...
     </extensions>
