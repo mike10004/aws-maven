@@ -4,8 +4,8 @@
   <artifactId>aws-maven</artifactId>
   <versioning>
     <versions>
-      <version>5.1.0.BUILD-SNAPSHOT</version>
+      <version>5.1.1.BUILD-SNAPSHOT</version>
     </versions>
-    <lastUpdated>20140429211814</lastUpdated>
+    <lastUpdated>20140429211901</lastUpdated>
   </versioning>
 </metadata>
