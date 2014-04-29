@@ -16,18 +16,62 @@
 
 package org.springframework.build.aws.maven;
 
+import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.AWSCredentialsProviderChain;
 import com.amazonaws.auth.EnvironmentVariableCredentialsProvider;
 import com.amazonaws.auth.InstanceProfileCredentialsProvider;
 import com.amazonaws.auth.SystemPropertiesCredentialsProvider;
+import java.util.ArrayList;
+import java.util.List;
 import org.apache.maven.wagon.authentication.AuthenticationInfo;
 
 final class AuthenticationInfoAWSCredentialsProviderChain extends AWSCredentialsProviderChain {
 
+    public static final String PARAM_CREDENTIALS_PROVIDERS = "credentialsProviders";
+    public static final String VALUE_ENVIRONMENT_VARIABLE_CREDENTIALS_PROVIDER = "EnvironmentVariable";
+    public static final String VALUE_SYSTEM_PROPERTIES_CREDENTIALS_PROVIDER = "SystemProperties";
+    public static final String VALUE_INSTANCE_PROFILE_CREDENTIALS_PROVIDER = "InstanceProfile";
+    public static final String VALUE_AUTHENTICATION_INFO_CREDENTIALS_PROVIDER = "AuthenticationInfo";
+    
+    private AuthenticationInfoAWSCredentialsProviderChain(AWSCredentialsProvider... credentialsProviders) {
+        super(credentialsProviders);
+    }
+    
     AuthenticationInfoAWSCredentialsProviderChain(AuthenticationInfo authenticationInfo) {
         super(new EnvironmentVariableCredentialsProvider(),
                 new SystemPropertiesCredentialsProvider(),
                 new InstanceProfileCredentialsProvider(),
                 new AuthenticationInfoAWSCredentialsProvider(authenticationInfo));
+    }
+    
+    public static AuthenticationInfoAWSCredentialsProviderChain buildFromParameterValue(String parameterValue, 
+            AuthenticationInfo authenticationInfo) {
+        if (parameterValue == null) {
+            return new AuthenticationInfoAWSCredentialsProviderChain(authenticationInfo);
+        }
+        String[] tokens = parameterValue.split("[^\\w]+");
+        List<AWSCredentialsProvider> providerList = new ArrayList<AWSCredentialsProvider>();
+        for (String token : tokens) {
+            AWSCredentialsProvider provider = parseProvider(token, authenticationInfo);
+            providerList.add(provider);
+        }
+        AWSCredentialsProvider[] providerArray = providerList.toArray(new AWSCredentialsProvider[providerList.size()]);
+        return new AuthenticationInfoAWSCredentialsProviderChain(providerArray);
+    }
+    
+    private static AWSCredentialsProvider parseProvider(String token, AuthenticationInfo authenticationInfo) {
+        final AWSCredentialsProvider provider;
+        if (VALUE_ENVIRONMENT_VARIABLE_CREDENTIALS_PROVIDER.equalsIgnoreCase(token)) {
+            provider = new EnvironmentVariableCredentialsProvider();
+        } else if (VALUE_SYSTEM_PROPERTIES_CREDENTIALS_PROVIDER.equalsIgnoreCase(token)) {
+            provider = new SystemPropertiesCredentialsProvider();
+        } else if (VALUE_INSTANCE_PROFILE_CREDENTIALS_PROVIDER.equalsIgnoreCase(token)) {
+            provider = new InstanceProfileCredentialsProvider();
+        } else if (VALUE_AUTHENTICATION_INFO_CREDENTIALS_PROVIDER.equalsIgnoreCase(token)) {
+            provider = new AuthenticationInfoAWSCredentialsProvider(authenticationInfo);
+        } else {
+            throw new IllegalArgumentException("unrecognized credentials provider specification: " + token);
+        }
+        return provider;
     }
 }

@@ -22,6 +22,7 @@ import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.internal.Mimetypes;
 import com.amazonaws.services.s3.model.*;
+import com.amazonaws.auth.AWSCredentialsProvider;
 import org.apache.maven.wagon.ResourceDoesNotExistException;
 import org.apache.maven.wagon.TransferFailedException;
 import org.apache.maven.wagon.authentication.AuthenticationException;
@@ -57,6 +58,8 @@ public final class SimpleStorageServiceWagon extends AbstractWagon {
 
     private volatile String baseDirectory;
 
+    private volatile String credentialsProviders;
+    
     /**
      * Creates a new instance of the wagon
      */
@@ -71,12 +74,16 @@ public final class SimpleStorageServiceWagon extends AbstractWagon {
         this.baseDirectory = baseDirectory;
     }
 
+    protected AWSCredentialsProvider buildCredentialsProvider(Repository repository, 
+            AuthenticationInfo authenticationInfo) {
+        return AuthenticationInfoAWSCredentialsProviderChain.buildFromParameterValue(credentialsProviders, authenticationInfo);
+    }
+    
     @Override
     protected void connectToRepository(Repository repository, AuthenticationInfo authenticationInfo,
                                        ProxyInfoProvider proxyInfoProvider) throws AuthenticationException {
         if (this.amazonS3 == null) {
-            AuthenticationInfoAWSCredentialsProviderChain credentialsProvider =
-                    new AuthenticationInfoAWSCredentialsProviderChain(authenticationInfo);
+            AWSCredentialsProvider credentialsProvider = buildCredentialsProvider(repository, authenticationInfo);
             ClientConfiguration clientConfiguration = S3Utils.getClientConfiguration(proxyInfoProvider);
 
             this.bucketName = S3Utils.getBucketName(repository);
@@ -246,6 +253,14 @@ public final class SimpleStorageServiceWagon extends AbstractWagon {
         objectMetadata.setContentLength(0);
 
         return new PutObjectRequest(this.bucketName, key, inputStream, objectMetadata).withCannedAcl(CannedAccessControlList.PublicRead);
+    }
+
+    public String getCredentialsProviders() {
+        return credentialsProviders;
+    }
+
+    public void setCredentialsProviders(String credentialsProviders) {
+        this.credentialsProviders = credentialsProviders;
     }
 
 }
