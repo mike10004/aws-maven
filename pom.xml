@@ -168,8 +168,8 @@
 	</licenses>
 
 	<scm>
-		<connection>scm:git:https://github.com/mike10004/aws-maven.git/tags/aws-maven-5.1.0.1</connection>
-        <!--<developerConnection>scm:git:git@github.com:mike10004/aws-maven.git</developerConnection>-->
+		<connection>scm:git:https://github.com/mike10004/aws-maven.git</connection>
+        <developerConnection>scm:git:git@github.com:mike10004/aws-maven.git</developerConnection>
 		<url>https://github.com/mike10004/aws-maven/tags/aws-maven-5.1.0.1</url>
 	</scm>
 
