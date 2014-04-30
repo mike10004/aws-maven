@@ -6,7 +6,7 @@
 	<groupId>com.github.mike10004</groupId>
 	<artifactId>aws-maven</artifactId>
 	<packaging>jar</packaging>
-	<version>5.1.1</version>
+	<version>5.1.0.1-SNAPSHOT</version>
 	<name>Amazon Web Services S3 Maven Wagon Support</name>
 	<description>Standard Maven wagon support for s3:// urls</description>
 
@@ -21,7 +21,12 @@
         <github.global.server>github</github.global.server>
 	</properties>
 
-	<dependencies>
+    <parent>
+        <groupId>org.sonatype.oss</groupId>
+        <artifactId>oss-parent</artifactId>
+        <version>7</version>
+    </parent>
+    <dependencies>
 		<dependency>
 			<groupId>ch.qos.logback</groupId>
 			<artifactId>logback-classic</artifactId>
@@ -48,6 +53,10 @@
 					<groupId>stax</groupId>
 					<artifactId>stax</artifactId>
 				</exclusion>
+			 <exclusion>
+			  <artifactId>joda-time</artifactId>
+			  <groupId>joda-time</groupId>
+			 </exclusion>
 			</exclusions>
 		</dependency>
 		<dependency>
@@ -99,38 +108,28 @@
 					<target>1.7</target>
 				</configuration>
 			</plugin>
+            <!-- attach sources and javadoc to install phase -->
             <plugin>
-                <artifactId>maven-deploy-plugin</artifactId>
-                <version>2.8.1</version>
-                <configuration>
-                    <altDeploymentRepository>internal.repo::default::file://${project.build.directory}/mvn-repo</altDeploymentRepository>
-                </configuration>
+              <artifactId>maven-source-plugin</artifactId>
+              <version>2.2.1</version>
+              <executions>
+                <execution>
+                  <id>attach-sources</id>
+                  <phase>install</phase>
+                  <goals><goal>jar-no-fork</goal></goals> 
+                </execution>
+              </executions>
             </plugin>
-            <plugin>
-                <groupId>com.github.github</groupId>
-                <artifactId>site-maven-plugin</artifactId>
-                <version>0.9</version>
-                <configuration>
-                    <message>Creating site for ${project.version}</message>
-                    <merge>true</merge>
-                    <!--<dryRun>true</dryRun>-->
-                    <noJekyll>true</noJekyll>                                  <!-- disable webpage processing -->
-                    <outputDirectory>${project.build.directory}/mvn-repo</outputDirectory> <!-- matches distribution management repository url above -->
-                    <branch>refs/heads/mvn-repo</branch>                       <!-- remote branch name -->
-                    <includes>
-                        <include>**/*</include>
-                    </includes>
-                    <repositoryName>aws-maven</repositoryName>      <!-- github repo name -->
-                    <repositoryOwner>mike10004</repositoryOwner>    <!-- github username  -->
-                </configuration>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>site</goal>
-                        </goals>
-                        <phase>deploy</phase>
-                    </execution>
-                </executions>
+            <plugin> 
+              <artifactId>maven-javadoc-plugin</artifactId> 
+              <version>2.9.1</version>
+              <executions> 
+                <execution> 
+                  <id>attach-javadocs</id>
+                  <phase>install</phase>
+                  <goals><goal>jar</goal></goals> 
+                </execution> 
+              </executions> 
             </plugin>
             <plugin>
 				<groupId>org.apache.maven.plugins</groupId>
@@ -156,9 +155,9 @@
 		</plugins>
 	</build>
 
-	<url>https://github.com/spring-projects/aws-maven</url>
+	<url>https://github.com/mike10004/aws-maven</url>
 
-	<inceptionYear>2007</inceptionYear>
+	<inceptionYear>2014</inceptionYear>
 
 	<licenses>
 		<license>
@@ -169,23 +168,14 @@
 	</licenses>
 
 	<scm>
-		<connection>scm:git:https://github.com/spring-projects/aws-maven.git</connection>
-		<url>https://github.com/spring-projects/aws-maven</url>
+		<connection>scm:git:https://github.com/mike10004/aws-maven.git/tags/aws-maven-5.1.0.1</connection>
+        <!--<developerConnection>scm:git:git@github.com:mike10004/aws-maven.git</developerConnection>-->
+		<url>https://github.com/mike10004/aws-maven/tags/aws-maven-5.1.0.1</url>
 	</scm>
-
-	<organization>
-		<name>Spring Framework</name>
-		<url>http://spring.io</url>
-	</organization>
-
-	<ciManagement>
-		<system>Bamboo</system>
-		<url>https://build.springsource.org/browse/BUILD-AWSMAVEN</url>
-	</ciManagement>
 
 	<issueManagement>
 		<system>Github</system>
-		<url>https://github.com/spring-projects/aws-maven/issues</url>
+		<url>https://github.com/mike10004/aws-maven/issues</url>
 	</issueManagement>
 
 	<developers>
@@ -194,6 +184,11 @@
 			<name>Ben Hale</name>
 			<email>bhale@gopivotal.com</email>
 		</developer>
+        <developer>
+            <id>mchaberski</id>
+            <name>Mike Chaberski</name>
+            <email>mchaberski+dev@gmail.com</email>
+        </developer>
 	</developers>
 
 </project>
