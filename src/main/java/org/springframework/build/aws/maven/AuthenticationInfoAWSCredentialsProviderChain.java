@@ -24,6 +24,8 @@ import com.amazonaws.auth.SystemPropertiesCredentialsProvider;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.maven.wagon.authentication.AuthenticationInfo;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 final class AuthenticationInfoAWSCredentialsProviderChain extends AWSCredentialsProviderChain {
 
@@ -32,6 +34,8 @@ final class AuthenticationInfoAWSCredentialsProviderChain extends AWSCredentials
     public static final String VALUE_SYSTEM_PROPERTIES_CREDENTIALS_PROVIDER = "SystemProperties";
     public static final String VALUE_INSTANCE_PROFILE_CREDENTIALS_PROVIDER = "InstanceProfile";
     public static final String VALUE_AUTHENTICATION_INFO_CREDENTIALS_PROVIDER = "AuthenticationInfo";
+    
+    private static final Logger log = LoggerFactory.getLogger(AuthenticationInfoAWSCredentialsProviderChain.class);
     
     private AuthenticationInfoAWSCredentialsProviderChain(AWSCredentialsProvider... credentialsProviders) {
         super(credentialsProviders);
@@ -47,6 +51,7 @@ final class AuthenticationInfoAWSCredentialsProviderChain extends AWSCredentials
     public static AuthenticationInfoAWSCredentialsProviderChain buildFromParameterValue(String parameterValue, 
             AuthenticationInfo authenticationInfo) {
         if (parameterValue == null) {
+            log.debug("using default credentials provider chain");
             return new AuthenticationInfoAWSCredentialsProviderChain(authenticationInfo);
         }
         String[] tokens = parameterValue.split("[^\\w]+");
@@ -55,6 +60,7 @@ final class AuthenticationInfoAWSCredentialsProviderChain extends AWSCredentials
             AWSCredentialsProvider provider = parseProvider(token, authenticationInfo);
             providerList.add(provider);
         }
+        log.debug("building credentials provider chain with {} providers specified by {}", providerList.size(), parameterValue);
         AWSCredentialsProvider[] providerArray = providerList.toArray(new AWSCredentialsProvider[providerList.size()]);
         return new AuthenticationInfoAWSCredentialsProviderChain(providerArray);
     }
