@@ -2,11 +2,12 @@
 This project is a [Maven Wagon][wagon] for [Amazon S3][s3].  In order to to publish artifacts to an S3 bucket, the user (as identified by their access key) must be listed as an owner on the bucket.
 
 ## Why this fork?
-This fork's enhancement is the ability to customize the AWS credentials provider chain that is used to 
-resolve credentials for the S3 bucket that hosts the Maven artifacts you deploy. The upstream version
-uses a default provider chain that includes an `InstanceProfileCredentialsProvider` that, in my 
-opinion, just takes too darn long to realize it's not going to be able to resolve any credentials and
-should give up.
+This fork's enhancement is the ability to customize the AWS credentials 
+provider chain that is used to resolve credentials for the S3 bucket that hosts
+the Maven artifacts you deploy. The upstream version uses a default provider 
+chain that includes an `InstanceProfileCredentialsProvider` that, in my 
+opinion, just takes too darn long to realize it's not going to be able to 
+resolve any credentials and should give up.
 
 ## Usage
 To publish Maven artifacts to S3 a build extension must be defined in a project's `pom.xml`.  The latest version of the wagon can be found in the `mvn-repo` branch of this repository.
@@ -17,12 +18,8 @@ To publish Maven artifacts to S3 a build extension must be defined in a project'
   <repositories>
     ...
     <repository>
-      <id>mike10004-aws-maven-mvn-repo</id>
-      <url>https://raw.github.com/mike10004/aws-maven/mvn-repo/</url>
-      <snapshots>
-        <enabled>true</enabled>
-        <updatePolicy>always</updatePolicy>
-      </snapshots>
+      <id>mike10004-snapshots</id>
+      <url>https://oss.sonatype.org/content/repositories/snapshots</url>
     </repository>
     ...
   </repositories>
@@ -87,6 +84,51 @@ Finally the `~/.m2/settings.xml` must be updated to include access and secret ke
   ...
 </settings>
 ```
+
+## Customizing the credentials provider chain
+
+To authenticate in AWS so that you can deploy artifacts to your S3 bucket, the 
+AWS SDK traverses a (credentials provider chain)[http://docs.aws.amazon.com/AWSJavaSDK/latest/javadoc/com/amazonaws/auth/AWSCredentialsProviderChain.html], 
+which is a sequence of objects that may or may not be able to pass credentials
+along. By default, the chain checks environment variables, system properties,
+the EC2 Instance Metadata Service, and then the username and password you have
+specified for your repository in the `<server>` entry in `~/.m2/settings.xml`. 
+
+To customize the credentials provider chain, edit that server entry in 
+`~/.m2/settings.xml` to include a `<configuration><credentialsProviders>` setting
+whose value is one or more of the following credentials provider specification
+tokens:
+
+ - `EnvironmentVariable` - use an (EnvironmentVariableCredentialsProvider)[http://docs.aws.amazon.com/AWSJavaSDK/latest/javadoc/com/amazonaws/auth/EnvironmentVariableCredentialsProvider.html] that checks `AWS_ACCESS_KEY_ID` and `AWS_SECRET_KEY` environment variables
+ - `SystemProperties` - use a (SystemPropertiesCredentialsProvider)[http://docs.aws.amazon.com/AWSJavaSDK/latest/javadoc/com/amazonaws/auth/SystemPropertiesCredentialsProvider.html] that checks the `aws.accessKeyId` and `aws.secretKey` Java system properties
+ - `InstanceProfile` - use an (InstanceProfileCredentialsProvider)[http://docs.aws.amazon.com/AWSJavaSDK/latest/javadoc/com/amazonaws/auth/InstanceProfileCredentialsProvider.html] that tries to load credentials from the Amazon EC2 Instance Metadata Service
+ - `AuthenticationInfo` - use an `org.springframework.build.aws.maven.AuthenticationInfoAWSCredentialsProvider` that gets credentials from the `<server>` username and password settings from `~/.m2/settings.xml`
+
+Delimit multiple tokens with commas. For example, if you only want to try providing 
+credentials first through environment variables and next through authentication info,
+then the server entry would look like 
+
+```xml
+<settings>
+  ...
+  <servers>
+    ...
+    <server>
+      <id>aws-snapshot</id>
+      <username>0123456789ABCDEFGHIJ</username>
+      <password>0123456789abcdefghijklmnopqrstuvwxyzABCD</password>
+      <configuration>
+        <credentialsProviders>EnvironmentVariable,AuthenticationInfo</credentialsProviders>
+      </configuration>
+    </server>
+    ...
+  </servers>
+  ...
+</settings>
+```
+
+If you do not specify the credentials providers configuration element, then the default
+chain mentioned above will be used.
 
 ## Making Artifacts Public
 This wagon doesn't set an explict ACL for each artfact that is uploaded.  Instead you should create an AWS Bucket Policy to set permissions on objects.  A bucket policy can be set in the [AWS Console][console] and can be generated using the [AWS Policy Generator][policy-generator].
