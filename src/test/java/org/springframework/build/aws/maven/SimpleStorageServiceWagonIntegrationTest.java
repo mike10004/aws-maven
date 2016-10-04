@@ -16,17 +16,6 @@
 
 package org.springframework.build.aws.maven;
 
-import com.amazonaws.AmazonServiceException;
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.*;
-import org.apache.maven.wagon.ResourceDoesNotExistException;
-import org.apache.maven.wagon.TransferFailedException;
-import org.apache.maven.wagon.WagonException;
-import org.apache.maven.wagon.authentication.AuthenticationInfo;
-import org.apache.maven.wagon.repository.Repository;
-import org.junit.Test;
-import org.mockito.ArgumentCaptor;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -35,9 +24,32 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
-import static org.junit.Assert.*;
+import com.amazonaws.AmazonServiceException;
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.model.ListObjectsRequest;
+import com.amazonaws.services.s3.model.ObjectListing;
+import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.PutObjectRequest;
+import com.amazonaws.services.s3.model.S3Object;
+import com.amazonaws.services.s3.model.S3ObjectInputStream;
+import com.amazonaws.services.s3.model.S3ObjectSummary;
+import org.apache.maven.wagon.ResourceDoesNotExistException;
+import org.apache.maven.wagon.TransferFailedException;
+import org.apache.maven.wagon.WagonException;
+import org.apache.maven.wagon.authentication.AuthenticationInfo;
+import org.apache.maven.wagon.repository.Repository;
+import org.junit.Test;
+import org.mockito.ArgumentCaptor;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.springframework.build.aws.maven.matchers.Matchers.eq;
 
 public final class SimpleStorageServiceWagonIntegrationTest {
@@ -226,41 +238,24 @@ public final class SimpleStorageServiceWagonIntegrationTest {
         File file = new File("src/test/resources/test.txt");
         this.wagon.putResource(file, FILE_NAME, this.transferProgress);
 
-        ArgumentCaptor<PutObjectRequest> putObjectRequest = ArgumentCaptor.forClass(PutObjectRequest.class);
-        verify(this.amazonS3, times(3)).putObject(putObjectRequest.capture());
+        ArgumentCaptor<PutObjectRequest> putObjectRequestCaptor = ArgumentCaptor.forClass(PutObjectRequest.class);
+        verify(this.amazonS3, times(1)).putObject(putObjectRequestCaptor.capture());
 
-        List<PutObjectRequest> putObjectRequests = putObjectRequest.getAllValues();
-        for (int i = 0; i < 2; i++) {
-            assertEquals(BUCKET_NAME, putObjectRequests.get(i).getBucketName());
-            assertNotNull(putObjectRequests.get(i).getInputStream());
-            assertEquals(0, putObjectRequests.get(i).getMetadata().getContentLength());
-            assertEquals(CannedAccessControlList.PublicRead, putObjectRequests.get(i).getCannedAcl());
-        }
+        PutObjectRequest putObjectRequest = putObjectRequestCaptor.getValue();
 
-        assertEquals("foo/", putObjectRequests.get(0).getKey());
-        assertEquals("foo/bar/", putObjectRequests.get(1).getKey());
+        assertEquals(BUCKET_NAME, putObjectRequest.getBucketName());
+        assertEquals(BASE_DIRECTORY + FILE_NAME, putObjectRequest.getKey());
+        assertNotNull(putObjectRequest.getInputStream());
 
-        PutObjectRequest fileRequest = putObjectRequests.get(2);
-        assertEquals(BUCKET_NAME, fileRequest.getBucketName());
-        assertEquals(BASE_DIRECTORY + FILE_NAME, fileRequest.getKey());
-        assertNotNull(fileRequest.getInputStream());
-
-        ObjectMetadata objectMetadata = fileRequest.getMetadata();
+        ObjectMetadata objectMetadata = putObjectRequest.getMetadata();
         assertNotNull(objectMetadata);
         assertEquals(file.length(), objectMetadata.getContentLength());
         assertEquals("text/plain", objectMetadata.getContentType());
     }
 
     @Test(expected = TransferFailedException.class)
-    public void putResourceMkdirException() throws TransferFailedException, ResourceDoesNotExistException {
-        when(this.amazonS3.putObject(any(PutObjectRequest.class))).thenThrow(new AmazonServiceException(""));
-        File file = new File("src/test/resources/test.txt");
-        this.wagon.putResource(file, FILE_NAME, this.transferProgress);
-    }
-
-    @Test(expected = TransferFailedException.class)
-    public void putResourcePutException() throws TransferFailedException, ResourceDoesNotExistException {
-        when(this.amazonS3.putObject(any(PutObjectRequest.class))).thenReturn(null, (PutObjectResult) null)
+    public void putResourceException() throws TransferFailedException, ResourceDoesNotExistException {
+        when(this.amazonS3.putObject(any(PutObjectRequest.class)))
                 .thenThrow(new AmazonServiceException(""));
         File file = new File("src/test/resources/test.txt");
         this.wagon.putResource(file, FILE_NAME, this.transferProgress);

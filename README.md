@@ -2,12 +2,12 @@
 This project is a [Maven Wagon][wagon] for [Amazon S3][s3].  In order to to publish artifacts to an S3 bucket, the user (as identified by their access key) must be listed as an owner on the bucket.
 
 ## Why this fork?
-This fork's enhancement is the ability to customize the AWS credentials 
-provider chain that is used to resolve credentials for the S3 bucket that hosts
-the Maven artifacts you deploy. The upstream version uses a default provider 
-chain that includes an `InstanceProfileCredentialsProvider` that, in my 
-opinion, just takes too darn long to realize it's not going to be able to 
-resolve any credentials and should give up.
+
+- Uses a more recent version of the AWS SDK (and only depends on the S3 portion of the SDK)
+- Allows customization of the AWS credentials provider chain
+- By default it uses the DefaultAWSCredentialsProviderChain built in to the S3 SDK.
+- Omits S3 calls for creating directories (unnecessary in S3)
+- Fixes https://github.com/spring-projects/aws-maven/issues/40
 
 ## Usage
 To publish Maven artifacts to S3 a build extension must be defined in a project's `pom.xml`.  The latest version of the wagon can be found in the `mvn-repo` branch of this repository.
@@ -101,6 +101,7 @@ tokens:
 
  - `EnvironmentVariable` - use an (EnvironmentVariableCredentialsProvider)[http://docs.aws.amazon.com/AWSJavaSDK/latest/javadoc/com/amazonaws/auth/EnvironmentVariableCredentialsProvider.html] that checks `AWS_ACCESS_KEY_ID` and `AWS_SECRET_KEY` environment variables
  - `SystemProperties` - use a (SystemPropertiesCredentialsProvider)[http://docs.aws.amazon.com/AWSJavaSDK/latest/javadoc/com/amazonaws/auth/SystemPropertiesCredentialsProvider.html] that checks the `aws.accessKeyId` and `aws.secretKey` Java system properties
+ - `Profile` - use an (ProfileCredentialsProvider)[http://docs.aws.amazon.com/AWSJavaSDK/latest/javadoc/com/amazonaws/auth/profile/ProfileCredentialsProvider.html]
  - `InstanceProfile` - use an (InstanceProfileCredentialsProvider)[http://docs.aws.amazon.com/AWSJavaSDK/latest/javadoc/com/amazonaws/auth/InstanceProfileCredentialsProvider.html] that tries to load credentials from the Amazon EC2 Instance Metadata Service
  - `AuthenticationInfo` - use an `org.springframework.build.aws.maven.AuthenticationInfoAWSCredentialsProvider` that gets credentials from the `<server>` username and password settings from `~/.m2/settings.xml`
 
