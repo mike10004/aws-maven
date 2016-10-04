@@ -16,13 +16,29 @@
 
 package org.springframework.build.aws.maven;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.ClientConfiguration;
+import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.internal.Mimetypes;
-import com.amazonaws.services.s3.model.*;
-import com.amazonaws.auth.AWSCredentialsProvider;
+import com.amazonaws.services.s3.model.ListObjectsRequest;
+import com.amazonaws.services.s3.model.ObjectListing;
+import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.PutObjectRequest;
+import com.amazonaws.services.s3.model.S3Object;
+import com.amazonaws.services.s3.model.S3ObjectSummary;
 import org.apache.maven.wagon.ResourceDoesNotExistException;
 import org.apache.maven.wagon.TransferFailedException;
 import org.apache.maven.wagon.authentication.AuthenticationException;
@@ -30,20 +46,13 @@ import org.apache.maven.wagon.authentication.AuthenticationInfo;
 import org.apache.maven.wagon.proxy.ProxyInfoProvider;
 import org.apache.maven.wagon.repository.Repository;
 
-import java.io.*;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 /**
  * An implementation of the Maven Wagon interface that allows you to access the Amazon S3 service. URLs that reference
  * the S3 service should be in the form of <code>s3://bucket.name</code>. As an example
  * <code>s3://static.springframework.org</code> would put files into the <code>static.springframework.org</code> bucket
  * on the S3 service.
- * <p/>
- * This implementation uses the <code>username</code> and <code>passphrase</code> portions of the server authentication
+ *
+ * <p>This implementation uses the <code>username</code> and <code>passphrase</code> portions of the server authentication
  * metadata for credentials.
  */
 public final class SimpleStorageServiceWagon extends AbstractWagon {
@@ -56,6 +65,9 @@ public final class SimpleStorageServiceWagon extends AbstractWagon {
 
     private volatile String bucketName;
 
+    /**
+     * Base directory in S3, with ending slash (if nonempty)
+     */
     private volatile String baseDirectory;
 
     private volatile String credentialsProviders;
@@ -124,7 +136,7 @@ public final class SimpleStorageServiceWagon extends AbstractWagon {
 
     @Override
     protected List<String> listDirectory(String directory) throws ResourceDoesNotExistException {
-        List<String> directoryContents = new ArrayList<String>();
+        List<String> directoryContents = new ArrayList<>();
 
         try {
             String prefix = getKey(directory);
@@ -179,8 +191,6 @@ public final class SimpleStorageServiceWagon extends AbstractWagon {
             ResourceDoesNotExistException {
         String key = getKey(destination);
 
-        mkdirs(key, 0);
-
         InputStream in = null;
         try {
             ObjectMetadata objectMetadata = new ObjectMetadata();
@@ -208,7 +218,7 @@ public final class SimpleStorageServiceWagon extends AbstractWagon {
     }
 
     private List<String> getResourceNames(ObjectListing objectListing, Pattern pattern) {
-        List<String> resourceNames = new ArrayList<String>();
+        List<String> resourceNames = new ArrayList<>();
 
         for (String commonPrefix : objectListing.getCommonPrefixes()) {
             resourceNames.add(getResourceName(commonPrefix, pattern));
@@ -227,32 +237,6 @@ public final class SimpleStorageServiceWagon extends AbstractWagon {
             return matcher.group(1);
         }
         return key;
-    }
-
-    private void mkdirs(String path, int index) throws TransferFailedException {
-        int directoryIndex = path.indexOf('/', index) + 1;
-
-        if (directoryIndex != 0) {
-            String directory = path.substring(0, directoryIndex);
-            PutObjectRequest putObjectRequest = createDirectoryPutObjectRequest(directory);
-
-            try {
-                this.amazonS3.putObject(putObjectRequest);
-            } catch (AmazonServiceException e) {
-                throw new TransferFailedException(String.format("Cannot write directory '%s'", directory), e);
-            }
-
-            mkdirs(path, directoryIndex);
-        }
-    }
-
-    private PutObjectRequest createDirectoryPutObjectRequest(String key) {
-        ByteArrayInputStream inputStream = new ByteArrayInputStream(new byte[0]);
-
-        ObjectMetadata objectMetadata = new ObjectMetadata();
-        objectMetadata.setContentLength(0);
-
-        return new PutObjectRequest(this.bucketName, key, inputStream, objectMetadata).withCannedAcl(CannedAccessControlList.PublicRead);
     }
 
     public String getCredentialsProviders() {

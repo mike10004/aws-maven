@@ -16,6 +16,9 @@
 
 package org.springframework.build.aws.maven;
 
+import java.io.File;
+import java.util.List;
+
 import org.apache.maven.wagon.ConnectionException;
 import org.apache.maven.wagon.ResourceDoesNotExistException;
 import org.apache.maven.wagon.TransferFailedException;
@@ -30,9 +33,6 @@ import org.apache.maven.wagon.proxy.ProxyInfo;
 import org.apache.maven.wagon.proxy.ProxyInfoProvider;
 import org.apache.maven.wagon.repository.Repository;
 import org.apache.maven.wagon.resource.Resource;
-
-import java.io.File;
-import java.util.List;
 
 abstract class AbstractWagon implements Wagon {
 
@@ -216,6 +216,14 @@ abstract class AbstractWagon implements Wagon {
         // Nothing to do here (never called by the wagon manager)
     }
 
+    /**
+     *
+     * @param source
+     * @param destination should not begin with "/"
+     * @throws TransferFailedException
+     * @throws ResourceDoesNotExistException
+     * @throws AuthorizationException
+     */
     @Override
     public final void put(File source, String destination) throws TransferFailedException,
             ResourceDoesNotExistException, AuthorizationException {
@@ -239,7 +247,18 @@ abstract class AbstractWagon implements Wagon {
         File[] files = sourceDirectory.listFiles();
         if (files != null) {
             for (File f : files) {
-                put(f, destinationDirectory + "/" + f.getName());
+                String destinationPrefix;
+                if (destinationDirectory.equals("./")) {
+                    destinationPrefix = "";
+                } else {
+                    destinationPrefix = destinationDirectory + "/";
+                }
+
+                if (f.isFile()) {
+                    put(f, destinationPrefix + f.getName());
+                } else if (f.isDirectory()) {
+                    putDirectory(f, destinationPrefix + f.getName());
+                }
             }
         }
     }

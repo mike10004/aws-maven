@@ -30,6 +30,11 @@ final class S3Utils {
         return repository.getHost();
     }
 
+    /**
+     *
+     * @param repository
+     * @return a string representation of the basedir, if non-empty always ending in '/'
+     */
     static String getBaseDirectory(Repository repository) {
         StringBuilder sb = new StringBuilder(repository.getBasedir()).deleteCharAt(0);
 
